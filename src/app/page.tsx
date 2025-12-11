@@ -5,6 +5,8 @@ import { TabBar } from "../components/TabBar";
 import { FamilyManager } from "../components/FamilyManager";
 import { PairingView } from "../components/PairingView";
 
+import { createClient } from "@supabase/supabase-js";
+
 export type Family = {
   id: string;
   name: string;
@@ -16,8 +18,11 @@ export type GroupSession = {
   groups: string[][];
 };
 
-const FAMILIES_KEY = "aroundTheTable:families";
-const SESSIONS_KEY = "aroundTheTable:sessions";
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 type Tab = "families" | "pairing";
 
@@ -25,78 +30,119 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<Tab>("families");
   const [families, setFamilies] = useState<Family[]>([]);
   const [sessions, setSessions] = useState<GroupSession[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load stored data
+  // ---------------------------------------------------------
+  // LOAD FAMILIES & SESSIONS FROM SUPABASE ON FIRST LOAD
+  // ---------------------------------------------------------
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    const loadData = async () => {
+      setLoading(true);
 
-    const storedFamilies = window.localStorage.getItem(FAMILIES_KEY);
-    const storedSessions = window.localStorage.getItem(SESSIONS_KEY);
+      // Load families
+      const { data: famData, error: famError } = await supabase
+        .from("families")
+        .select("*")
+        .order("name", { ascending: true });
 
-    if (storedFamilies) {
-      try {
-        setFamilies(JSON.parse(storedFamilies));
-      } catch {}
-    }
+      if (famError) console.error("Error loading families:", famError);
+      else if (famData) setFamilies(famData);
 
-    if (storedSessions) {
-      try {
-        setSessions(JSON.parse(storedSessions));
-      } catch {}
-    }
+      // Load sessions
+      const { data: sesData, error: sesError } = await supabase
+        .from("sessions")
+        .select("*")
+        .order("timestamp", { ascending: false });
+
+      if (sesError) console.error("Error loading sessions:", sesError);
+      else if (sesData) setSessions(sesData);
+
+      setLoading(false);
+    };
+
+    loadData();
   }, []);
 
-  // Save families
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(FAMILIES_KEY, JSON.stringify(families));
-    }
-  }, [families]);
-
-  // Save sessions
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
-    }
-  }, [sessions]);
-
-  // Add a new family
-  const handleAddFamily = (name: string) => {
+  // ---------------------------------------------------------
+  // ADD A FAMILY (INSERT INTO SUPABASE)
+  // ---------------------------------------------------------
+  const handleAddFamily = async (name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
 
-    if (families.some(f => f.name.toLowerCase() === trimmed.toLowerCase())) {
+    // prevent duplicates
+    if (families.some((f) => f.name.toLowerCase() === trimmed.toLowerCase())) {
       return;
     }
 
-    setFamilies(prev => [
-      ...prev,
-      { id: crypto.randomUUID(), name: trimmed }
-    ]);
+    const { data, error } = await supabase
+      .from("families")
+      .insert([{ id: crypto.randomUUID(), name: trimmed }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Add family error:", error);
+      return;
+    }
+
+    setFamilies((prev) => [...prev, data]);
   };
 
-  // Remove a family
-  const handleRemoveFamily = (id: string) => {
-    setFamilies(prev => prev.filter(f => f.id !== id));
+  // ---------------------------------------------------------
+  // REMOVE A FAMILY
+  // ---------------------------------------------------------
+  const handleRemoveFamily = async (id: string) => {
+    const { error } = await supabase.from("families").delete().eq("id", id);
+    if (error) {
+      console.error("Remove family error:", error);
+      return;
+    }
+
+    setFamilies((prev) => prev.filter((f) => f.id !== id));
   };
 
-  // Save a new grouping session
-  const saveCurrentGroupsAsSession = (groups: string[][]) => {
+  // ---------------------------------------------------------
+  // SAVE NEW SESSION INTO SUPABASE
+  // ---------------------------------------------------------
+  const saveCurrentGroupsAsSession = async (groups: string[][]) => {
     if (!groups || groups.length === 0) return;
 
     const newSession: GroupSession = {
       id: crypto.randomUUID(),
       timestamp: Date.now(),
-      groups
+      groups,
     };
 
-    setSessions(prev => [newSession, ...prev]);
+    const { data, error } = await supabase
+      .from("sessions")
+      .insert([newSession])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Save session error:", error);
+      return;
+    }
+
+    // Prepend to list
+    setSessions((prev) => [data, ...prev]);
   };
 
+  // Get most recent session
   const mostRecentSession = useMemo(
     () => (sessions.length > 0 ? sessions[0] : null),
     [sessions]
   );
+
+  // Optional "loading" placeholder
+  if (loading) {
+    return (
+      <div className="text-center text-slate-300 mt-20 text-lg">
+        Loading data…
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -107,8 +153,7 @@ export default function HomePage() {
           families={families}
           onAddFamily={handleAddFamily}
           onRemoveFamily={handleRemoveFamily}
-          // No more generatePairs
-          onGeneratePairs={() => {}}
+          onGeneratePairs={() => setActiveTab("pairing")}
         />
       )}
 

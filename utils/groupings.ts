@@ -42,76 +42,78 @@ export function generateGroups(
   groupSize: number,
   pairFrequency: Record<string, Record<string, number>>
 ): string[][] {
-  const remaining: string[] = families.map((f) => f.name);
-  const groups: string[][] = [];
+  const names = families.map(f => f.name);
+  const total = names.length;
 
-  while (remaining.length > 0) {
-    const size =
-      remaining.length <= groupSize * 1.5
-        ? Math.ceil(remaining.length / Math.ceil(remaining.length / groupSize))
-        : groupSize;
+  // ---------------------------------------------------------
+  // 1️⃣ Calculate IDEAL group counts
+  // ---------------------------------------------------------
+  const baseGroupCount = Math.floor(total / groupSize); // Full groups
+  const remainder = total % groupSize; // How many left over?
 
-    const group: string[] = [];
+  const finalGroupCount =
+    remainder === 0
+      ? baseGroupCount
+      : baseGroupCount + 1; // Need 1 extra group for leftovers
 
-    const firstIndex = Math.floor(Math.random() * remaining.length);
-    const first = remaining.splice(firstIndex, 1)[0];
-    group.push(first);
+  const idealGroupSizes: number[] = [];
 
-    while (group.length < size && remaining.length > 0) {
-      let bestMatch: string | null = null;
-      let bestScore = Infinity;
-
-      for (const candidate of remaining) {
-        let score = 0;
-        for (const member of group) {
-          score += pairFrequency[member][candidate] ?? 0;
-        }
-        if (score < bestScore) {
-          bestScore = score;
-          bestMatch = candidate;
-        }
-      }
-
-      if (bestMatch !== null) {
-        const index = remaining.indexOf(bestMatch);
-        if (index !== -1) remaining.splice(index, 1);
-        group.push(bestMatch);
-      }
-    }
-
-    groups.push(group);
+  // Fill group sizes evenly
+  for (let i = 0; i < finalGroupCount; i++) {
+    idealGroupSizes.push(groupSize);
   }
 
-  for (let i = groups.length - 1; i >= 0; i--) {
-    if (groups[i].length === 1) {
-        const lone = groups[i][0];
+  // Distribute remaining members one-by-one into groups
+  for (let i = 0; i < remainder; i++) {
+    idealGroupSizes[i]++; // these become size+1
+  }
 
-        // Remove the 1-person group
-        groups.splice(i, 1);
+  // Example:
+  // 7 family total, groupSize=3 → ideal sizes = [4, 3]
 
-        let bestGroupIndex = 0;
-        let bestScore = Infinity;
+  // ---------------------------------------------------------
+  // 2️⃣ Build groups using your least-paired algorithm
+  // ---------------------------------------------------------
+  const remaining = [...names];
+  const groups: string[][] = [];
 
-        // Choose the group with the *least pairing history* with this member
-        for (let g = 0; g < groups.length; g++) {
-        const group = groups[g];
+ idealGroupSizes.forEach((size) => {
+  if (remaining.length === 0) return; // <-- Defensive: nothing left to put in a group
 
-        // Sum scores against all current group members
-        let score = 0;
-        for (const member of group) {
-            score += pairFrequency[lone]?.[member] ?? 0;
-        }
+  const group: string[] = [];
 
-        if (score < bestScore) {
-            bestScore = score;
-            bestGroupIndex = g;
-        }
-        }
+  // Pick a random start
+  const first = remaining.splice(Math.floor(Math.random() * remaining.length), 1)[0];
+  if (!first) return; // <-- Defensive again
+  group.push(first);
 
-        // Place lone member into the best-fitting group
-        groups[bestGroupIndex].push(lone);
+  while (group.length < size && remaining.length > 0) {
+    let best: string | null = null;
+    let bestScore = Infinity;
+
+    for (const candidate of remaining) {
+      let score = 0;
+
+      for (const member of group) {
+        score += pairFrequency[member]?.[candidate] ?? 0;
+      }
+
+      if (score < bestScore) {
+        bestScore = score;
+        best = candidate;
+      }
     }
-    }
+
+    if (!best) break; // <-- Defensive
+    remaining.splice(remaining.indexOf(best), 1);
+    group.push(best);
+  }
+
+  if (group.length > 0) {
+    groups.push(group); // <-- Only push if non-empty
+  }
+});
 
   return groups;
 }
+
