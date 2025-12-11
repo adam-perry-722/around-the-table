@@ -84,9 +84,9 @@ export function PairingView({
     `;
 
     session.groups.forEach((group, i) => {
-      html += `<h2 style="font-size: 16px; margin-top: 15px;">Group ${i + 1}</h2><ul>`;
+      html += `<h2 style="font-size: 18px; font-weight: bold; margin-top: 15px;">Group ${i + 1}:</h2><ul>`;
       group.forEach((member) => {
-        html += `<li style="margin: 4px 0;">${member}</li>`;
+        html += `<li style="font-size: 14px; margin: 4px 0;">${member}</li>`;
       });
       html += `</ul>`;
     });
