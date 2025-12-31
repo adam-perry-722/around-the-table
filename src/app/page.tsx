@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { TabBar } from "../components/TabBar";
 import { FamilyManager } from "../components/FamilyManager";
 import { PairingView } from "../components/PairingView";
-
+import { AttendanceSelector } from "../components/AttendanceSelector";
 import { createClient } from "@supabase/supabase-js";
 
 export type Family = {
@@ -24,13 +24,15 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type Tab = "families" | "pairing";
+type Tab = "families" | "attendance" | "pairing";
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<Tab>("families");
   const [families, setFamilies] = useState<Family[]>([]);
   const [sessions, setSessions] = useState<GroupSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [attendingIds, setAttendingIds] = useState<string[]>([]);
+
 
   // ---------------------------------------------------------
   // LOAD FAMILIES & SESSIONS FROM SUPABASE ON FIRST LOAD
@@ -62,6 +64,11 @@ export default function HomePage() {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    setAttendingIds(families.map(f => f.id));
+  }, [families]);
+
 
   // ---------------------------------------------------------
   // ADD A FAMILY (INSERT INTO SUPABASE)
@@ -102,6 +109,56 @@ export default function HomePage() {
     setFamilies((prev) => prev.filter((f) => f.id !== id));
   };
 
+  const toggleAttendance = (id: string) => {
+    setAttendingIds(prev =>
+      prev.includes(id)
+        ? prev.filter(x => x !== id)
+        : [...prev, id]
+    );
+  };
+
+  const setManyAttendance = (ids: string[], checked: boolean) => {
+    setAttendingIds(prev => {
+      const set = new Set(prev);
+
+      ids.forEach(id => {
+        if (checked) set.add(id);
+        else set.delete(id);
+      });
+
+      return Array.from(set);
+    });
+  };
+
+  const handleEditFamily = async (id: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+
+    // Prevent duplicates (case-insensitive), excluding the current family
+    if (
+      families.some(
+        (f) => f.id !== id && f.name.toLowerCase() === trimmed.toLowerCase()
+      )
+    ) {
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("families")
+      .update({ name: trimmed })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Edit family error:", error);
+      return;
+    }
+
+    // Update state with returned row
+    setFamilies((prev) => prev.map((f) => (f.id === id ? data : f)));
+  };
+  
   // ---------------------------------------------------------
   // SAVE NEW SESSION INTO SUPABASE
   // ---------------------------------------------------------
@@ -153,18 +210,30 @@ export default function HomePage() {
           families={families}
           onAddFamily={handleAddFamily}
           onRemoveFamily={handleRemoveFamily}
-          onGeneratePairs={() => setActiveTab("pairing")}
+          onGeneratePairs={() => setActiveTab("attendance")}
+          onEditFamily={handleEditFamily}
         />
       )}
 
       {activeTab === "pairing" && (
         <PairingView
           families={families}
+          attendingIds={attendingIds}
           sessions={sessions}
           mostRecentSession={mostRecentSession}
           onSaveSession={saveCurrentGroupsAsSession}
         />
       )}
+
+      {activeTab === "attendance" && (
+        <AttendanceSelector
+          families={families}
+          attendingIds={attendingIds}
+          onToggle={toggleAttendance}
+          onSetMany={setManyAttendance}
+        />
+      )}
+
     </div>
   );
 }

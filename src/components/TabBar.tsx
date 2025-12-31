@@ -1,6 +1,6 @@
 "use client";
 
-type Tab = "families" | "pairing";
+type Tab = "families" | "attendance" | "pairing";
 
 interface TabBarProps {
   activeTab: Tab;
@@ -19,6 +19,16 @@ export function TabBar({ activeTab, onChange }: TabBarProps) {
         }`}
       >
         Families
+      </button>
+      <button
+        onClick={() => onChange("attendance")}
+        className={`px-3 py-1.5 rounded-full transition ${
+          activeTab === "attendance"
+            ? "bg-primary text-white shadow-sm"
+            : "text-slate-400 hover:text-slate-100"
+        }`}
+      >
+        Participation
       </button>
       <button
         onClick={() => onChange("pairing")}

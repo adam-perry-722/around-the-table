@@ -8,6 +8,7 @@ interface FamilyManagerProps {
   onAddFamily: (name: string) => void;
   onRemoveFamily: (id: string) => void;
   onGeneratePairs: () => void;
+  onEditFamily: (id: string, newName: string) => void;
 }
 
 export function FamilyManager({
@@ -15,14 +16,38 @@ export function FamilyManager({
   onAddFamily,
   onRemoveFamily,
   onGeneratePairs,
+  onEditFamily,
 }: FamilyManagerProps) {
   const [input, setInput] = useState("");
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onAddFamily(input);
     setInput("");
   };
+
+  const openEdit = (id: string, currentName: string) => {
+  setEditId(id);
+  setEditName(currentName);
+  setIsEditOpen(true);
+  };
+
+  const closeEdit = () => {
+    setIsEditOpen(false);
+    setEditId(null);
+    setEditName("");
+  };
+
+  const saveEdit = async () => {
+    if (!editId) return;
+    await onEditFamily(editId, editName);
+    closeEdit();
+  };
+
 
   return (
     <div className="grid gap-6 md:grid-cols-[2fr,3fr]">
@@ -32,8 +57,7 @@ export function FamilyManager({
           Add families / people
         </h2>
         <p className="text-xs md:text-sm text-slate-400 mb-4">
-          Add each family or person you want to include in groupings. You can
-          use individual names or family names like &quot;Perry Family&quot;.
+          Add each family or person you want to include in groupings.
         </p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex gap-2">
@@ -58,16 +82,8 @@ export function FamilyManager({
 
         <div className="mt-5 pt-4 border-t border-slate-800 space-y-3">
           <h3 className="text-sm font-medium text-slate-200">
-            Next: generate groups
+            Next: Participation
           </h3>
-          <button
-            type="button"
-            onClick={onGeneratePairs}
-            disabled={families.length < 2}
-            className="px-5 py-2 rounded-md font-medium shadow-sm bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition"
-          >
-            Generate groups
-          </button>
           {families.length < 2 && (
             <p className="text-[11px] text-slate-500">
               Add at least 2 families before generating groups.
@@ -98,6 +114,13 @@ export function FamilyManager({
                 <span>{f.name}</span>
                 <button
                   type="button"
+                  onClick={() => openEdit(f.id, f.name)}
+                  className="rounded-md px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
                   onClick={() => onRemoveFamily(f.id)}
                   className="text-[11px] text-red-400 hover:text-red-300"
                 >
@@ -106,6 +129,55 @@ export function FamilyManager({
               </li>
             ))}
           </ul>
+        )}
+        {isEditOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* backdrop */}
+            <div
+              className="absolute inset-0 bg-black/60"
+              onClick={closeEdit}
+            />
+
+            {/* modal */}
+            <div className="relative w-[92%] max-w-md rounded-xl border border-slate-700 bg-[#1f1f1f] p-5 shadow-lg">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Edit family name
+              </h3>
+
+              <p className="text-sm text-slate-400 mb-4">
+                Update the name. History will stay linked because we store IDs.
+              </p>
+
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full rounded-md bg-white text-black px-3 py-2 border border-slate-400"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveEdit();
+                  if (e.key === "Escape") closeEdit();
+                }}
+              />
+
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  className="rounded-md px-4 py-2 text-sm bg-slate-600 text-white hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveEdit}
+                  className="rounded-md px-4 py-2 text-sm bg-emerald-600 text-white hover:bg-emerald-700"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </section>
     </div>

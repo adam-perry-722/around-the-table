@@ -12,6 +12,7 @@ import {
 
 interface PairingViewProps {
   families: Family[];
+  attendingIds: string[];
   sessions: GroupSession[];
   mostRecentSession: GroupSession | null;
   onSaveSession: (groups: string[][]) => void;
@@ -24,6 +25,7 @@ function formatDate(timestamp: number) {
 
 export function PairingView({
   families,
+  attendingIds,
   sessions,
   mostRecentSession,
   onSaveSession,
@@ -40,8 +42,12 @@ export function PairingView({
       return;
     }
 
+    const attendingFamilies = families.filter(f =>
+      attendingIds.includes(f.id)
+    );
+
     const frequency = buildPairFrequency(families, sessions);
-    const groups = generateGroups(families, groupSize, frequency);
+    const groups = generateGroups(attendingFamilies, groupSize, frequency);
     setCurrentGroups(groups);
   };
 
