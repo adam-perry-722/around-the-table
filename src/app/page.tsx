@@ -69,6 +69,16 @@ export default function HomePage() {
     setAttendingIds(families.map(f => f.id));
   }, [families]);
 
+  const loadFamilies = async () => {
+    const { data, error } = await supabase
+      .from("families")
+      .select("*")
+      .order("name");
+
+    if (!error && data) {
+      setFamilies(data);
+    }
+  };
 
   // ---------------------------------------------------------
   // ADD A FAMILY (INSERT INTO SUPABASE)
@@ -93,7 +103,9 @@ export default function HomePage() {
       return;
     }
 
-    setFamilies((prev) => [...prev, data]);
+    if (!error) {
+      await loadFamilies();
+    }
   };
 
   // ---------------------------------------------------------

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { buildPairFrequency, generateGroups } from "../../utils/groupings";
 import { Family, GroupSession } from "../app/page";
 import {
@@ -45,9 +45,13 @@ export function PairingView({
     const attendingFamilies = families.filter(f =>
       attendingIds.includes(f.id)
     );
+    console.log("Sample attending family:", attendingFamilies[0]);
+    console.log("Sample attending family id:", attendingFamilies[0]?.id);
+    console.log("Sample attending family name:", attendingFamilies[0]?.name);
 
     const frequency = buildPairFrequency(families, sessions);
     const groups = generateGroups(attendingFamilies, groupSize, frequency);
+    console.log("Generated group value sample:", groups?.[0]?.[0]);
     setCurrentGroups(groups);
   };
 
@@ -138,6 +142,10 @@ export function PairingView({
       return groups.filter(g => g.length > 0);
     });
   };
+
+  const idToName = useMemo(() => {
+    return Object.fromEntries(families.map((f) => [f.id, f.name]));
+  }, [families]);
 
   return (
     <div className="grid gap-6 md:grid-cols-[3fr,2fr] text-white">
@@ -235,7 +243,7 @@ export function PairingView({
                                     : ""
                                 }`}
                               >
-                                <span>{member}</span>
+                                <span>{idToName[member] ?? "(Unknown family)"}</span>
                                 <span className="text-[10px] text-slate-400">
                                   drag to move
                                 </span>
@@ -311,8 +319,10 @@ export function PairingView({
                   <div key={i} className="mb-2">
                     <span className="font-semibold">Group {i + 1}:</span>
                     <ul className="ml-3 text-[11px] space-y-1">
-                      {group.map((name) => (
-                        <li key={name}>{name}</li>
+                      {group.map((familyId) => (
+                        <li key={familyId}>
+                          {idToName[familyId] ?? <span className="text-slate-500">(Unknown family)</span>}
+                        </li>
                       ))}
                     </ul>
                   </div>

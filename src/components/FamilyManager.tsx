@@ -22,6 +22,9 @@ export function FamilyManager({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [isRemoveOpen, setIsRemoveOpen] = useState(false);
+  const [removeId, setRemoveId] = useState<string | null>(null);
+  const [removeName, setRemoveName] = useState("");
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,6 +51,23 @@ export function FamilyManager({
     closeEdit();
   };
 
+  const openRemoveConfirm = (id: string, name: string) => {
+  setRemoveId(id);
+  setRemoveName(name);
+  setIsRemoveOpen(true);
+};
+
+const closeRemoveConfirm = () => {
+  setIsRemoveOpen(false);
+  setRemoveId(null);
+  setRemoveName("");
+};
+
+const confirmRemove = async () => {
+  if (!removeId) return;
+  await onRemoveFamily(removeId);
+  closeRemoveConfirm();
+};
 
   return (
     <div className="grid gap-6 md:grid-cols-[2fr,3fr]">
@@ -112,7 +132,8 @@ export function FamilyManager({
                 className="flex items-center justify-between rounded-lg border border-slate-800 bg-[#2A2A2A] px-3 py-2 text-sm"
               >
                 <span>{f.name}</span>
-                <button
+                <div className="flex items-center gap-3">
+                  <button
                   type="button"
                   onClick={() => openEdit(f.id, f.name)}
                   className="rounded-md px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700"
@@ -121,11 +142,12 @@ export function FamilyManager({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onRemoveFamily(f.id)}
+                  onClick={() => openRemoveConfirm(f.id, f.name)}
                   className="text-[11px] text-red-400 hover:text-red-300"
                 >
                   Remove
                 </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -174,6 +196,49 @@ export function FamilyManager({
                   className="rounded-md px-4 py-2 text-sm bg-emerald-600 text-white hover:bg-emerald-700"
                 >
                   Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {isRemoveOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* backdrop */}
+            <div
+              className="absolute inset-0 bg-black/60"
+              onClick={closeRemoveConfirm}
+            />
+
+            {/* modal */}
+            <div className="relative w-[92%] max-w-md rounded-xl border border-slate-700 bg-[#1f1f1f] p-5 shadow-lg">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Remove family?
+              </h3>
+
+              <p className="text-sm text-slate-400 mb-4">
+                Are you sure you want to remove{" "}
+                <span className="text-white font-semibold">{removeName}</span>?
+                <br />
+                <span className="text-slate-500">
+                  This will remove them from attendance selection, but saved history will remain.
+                </span>
+              </p>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeRemoveConfirm}
+                  className="rounded-md px-4 py-2 text-sm bg-slate-600 text-white hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmRemove}
+                  className="rounded-md px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700"
+                >
+                  Yes, remove
                 </button>
               </div>
             </div>

@@ -3,29 +3,29 @@ import { Family, GroupSession } from "../src/app/page";
 export function buildPairFrequency(
   families: Family[],
   sessions: GroupSession[]
-) {
+): Record<string, Record<string, number>> {
   const count: Record<string, Record<string, number>> = {};
 
-  // Build initial zero matrix based on *current* families only
-  const familyNames = families.map(f => f.name);
+  const familyIds = families.map(f => f.id);
 
-  for (const name of familyNames) {
-    count[name] = {};
-    for (const other of familyNames) {
-      count[name][other] = 0;
+  // Initialize zero matrix
+  for (const id of familyIds) {
+    count[id] = {};
+    for (const otherId of familyIds) {
+      count[id][otherId] = 0;
     }
   }
 
-  // Process past sessions safely
+  // Process historical sessions
   for (const session of sessions) {
     for (const group of session.groups) {
       for (let i = 0; i < group.length; i++) {
         const a = group[i];
-        if (!count[a]) continue; // family removed → skip
+        if (!count[a]) continue;
 
         for (let j = i + 1; j < group.length; j++) {
           const b = group[j];
-          if (!count[b]) continue; // family removed → skip
+          if (!count[b]) continue;
 
           count[a][b] += 1;
           count[b][a] += 1;
@@ -42,78 +42,76 @@ export function generateGroups(
   groupSize: number,
   pairFrequency: Record<string, Record<string, number>>
 ): string[][] {
-  const names = families.map(f => f.name);
-  const total = names.length;
+  // Use IDs internally (NOT names)
+  const ids = families.map(f => f.id);
+  const total = ids.length;
 
   // ---------------------------------------------------------
-  // 1️⃣ Calculate IDEAL group counts
+  // 1️⃣ Calculate IDEAL group sizes
   // ---------------------------------------------------------
-  const baseGroupCount = Math.floor(total / groupSize); // Full groups
-  const remainder = total % groupSize; // How many left over?
+  const baseGroupCount = Math.floor(total / groupSize);
+  const remainder = total % groupSize;
 
   const finalGroupCount =
-    remainder === 0
-      ? baseGroupCount
-      : baseGroupCount + 1; // Need 1 extra group for leftovers
+    remainder === 0 ? baseGroupCount : baseGroupCount + 1;
 
   const idealGroupSizes: number[] = [];
 
-  // Fill group sizes evenly
   for (let i = 0; i < finalGroupCount; i++) {
     idealGroupSizes.push(groupSize);
   }
 
-  // Distribute remaining members one-by-one into groups
   for (let i = 0; i < remainder; i++) {
-    idealGroupSizes[i]++; // these become size+1
+    idealGroupSizes[i]++;
   }
 
-  // Example:
-  // 7 family total, groupSize=3 → ideal sizes = [4, 3]
-
   // ---------------------------------------------------------
-  // 2️⃣ Build groups using your least-paired algorithm
+  // 2️⃣ Build groups using least-paired logic (BY ID)
   // ---------------------------------------------------------
-  const remaining = [...names];
+  const remaining = [...ids];
   const groups: string[][] = [];
 
- idealGroupSizes.forEach((size) => {
-  if (remaining.length === 0) return; // <-- Defensive: nothing left to put in a group
+  idealGroupSizes.forEach(size => {
+    if (remaining.length === 0) return;
 
-  const group: string[] = [];
+    const group: string[] = [];
 
-  // Pick a random start
-  const first = remaining.splice(Math.floor(Math.random() * remaining.length), 1)[0];
-  if (!first) return; // <-- Defensive again
-  group.push(first);
+    // Random starting member
+    const first = remaining.splice(
+      Math.floor(Math.random() * remaining.length),
+      1
+    )[0];
 
-  while (group.length < size && remaining.length > 0) {
-    let best: string | null = null;
-    let bestScore = Infinity;
+    if (!first) return;
+    group.push(first);
 
-    for (const candidate of remaining) {
-      let score = 0;
+    while (group.length < size && remaining.length > 0) {
+      let best: string | null = null;
+      let bestScore = Infinity;
 
-      for (const member of group) {
-        score += pairFrequency[member]?.[candidate] ?? 0;
+      for (const candidate of remaining) {
+        let score = 0;
+
+        for (const member of group) {
+          score += pairFrequency[member]?.[candidate] ?? 0;
+        }
+
+        if (score < bestScore) {
+          bestScore = score;
+          best = candidate;
+        }
       }
 
-      if (score < bestScore) {
-        bestScore = score;
-        best = candidate;
-      }
+      if (!best) break;
+
+      remaining.splice(remaining.indexOf(best), 1);
+      group.push(best);
     }
 
-    if (!best) break; // <-- Defensive
-    remaining.splice(remaining.indexOf(best), 1);
-    group.push(best);
-  }
-
-  if (group.length > 0) {
-    groups.push(group); // <-- Only push if non-empty
-  }
-});
-
+    if (group.length > 0) {
+      groups.push(group);
+    }
+  });
   return groups;
 }
 
