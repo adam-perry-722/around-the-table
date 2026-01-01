@@ -220,7 +220,7 @@ const confirmRemove = async () => {
                 <span className="text-white font-semibold">{removeName}</span>?
                 <br />
                 <span className="text-slate-500">
-                  This will remove them from attendance selection, but saved history will remain.
+                  This will remove them from attendance selection
                 </span>
               </p>
 

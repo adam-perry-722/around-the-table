@@ -45,13 +45,9 @@ export function PairingView({
     const attendingFamilies = families.filter(f =>
       attendingIds.includes(f.id)
     );
-    console.log("Sample attending family:", attendingFamilies[0]);
-    console.log("Sample attending family id:", attendingFamilies[0]?.id);
-    console.log("Sample attending family name:", attendingFamilies[0]?.name);
 
     const frequency = buildPairFrequency(families, sessions);
     const groups = generateGroups(attendingFamilies, groupSize, frequency);
-    console.log("Generated group value sample:", groups?.[0]?.[0]);
     setCurrentGroups(groups);
   };
 
@@ -96,7 +92,7 @@ export function PairingView({
     session.groups.forEach((group, i) => {
       html += `<h2 style="font-size: 18px; font-weight: bold; margin-top: 15px;">Group ${i + 1}:</h2><ul>`;
       group.forEach((member) => {
-        html += `<li style="font-size: 14px; margin: 4px 0;">${member}</li>`;
+        html += `<li style="font-size: 14px; margin: 4px 0;">${idToName[member] ?? "(Unknown family)"}</li>`;
       });
       html += `</ul>`;
     });
