@@ -76,9 +76,6 @@ const confirmRemove = async () => {
         <h2 className="text-base md:text-lg font-semibold mb-3">
           Add families / people
         </h2>
-        <p className="text-xs md:text-sm text-slate-400 mb-4">
-          Add each family or person you want to include in groupings.
-        </p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex gap-2">
             <input
