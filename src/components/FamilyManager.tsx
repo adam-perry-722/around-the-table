@@ -217,7 +217,7 @@ const confirmRemove = async () => {
                 <span className="text-white font-semibold">{removeName}</span>?
                 <br />
                 <span className="text-slate-500">
-                  This will remove them from attendance selection
+                  This would also remove them from the history. You would want to do this if the family is no longer attending our congregation.
                 </span>
               </p>
 

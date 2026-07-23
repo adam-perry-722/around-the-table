@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { buildPairFrequency, generateGroups } from "../../utils/groupings";
+import { exportSessionPdf } from "../../utils/exportSessionPdf";
 import { Family, GroupSession } from "../app/page";
 import {
   DragDropContext,
@@ -35,6 +36,9 @@ export function PairingView({
   const [saveDisabled, setSaveDisabled] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
+  const idToName = useMemo(() => {
+    return Object.fromEntries(families.map((f) => [f.id, f.name]));
+  }, [families]);
 
   const handleGenerateGroups = () => {
     if (families.length < 2) {
@@ -75,52 +79,8 @@ export function PairingView({
     }, 2000);
   };
 
-  const exportSessionPDF = async (session: GroupSession) => {
-    if (typeof window === "undefined") return; // protect SSR
-
-    const html2pdf = (await import("html2pdf.js")).default;
-
-    const element = document.createElement("div");
-    element.style.padding = "20px";
-    element.style.fontFamily = "sans-serif";
-
-    let html = `
-      <h1 style="font-size: 20px; margin-bottom: 10px;">Around The Table</h1>
-      <p style="margin-bottom: 20px; color: #555;">${formatDate(session.timestamp)}</p>
-    `;
-
-    session.groups.forEach((group, i) => {
-      html += `<h2 style="font-size: 18px; font-weight: bold; margin-top: 15px;">Group ${i + 1}:</h2><ul>`;
-      group.forEach((member) => {
-        html += `<li style="font-size: 14px; margin: 4px 0;">${idToName[member] ?? "(Unknown family)"}</li>`;
-      });
-      html += `</ul>`;
-    });
-
-    element.innerHTML = html;
-
-    const opt: any = {
-      margin: 0.5,
-      filename: `Around-The-Table-${formatDateForFilename(session.timestamp)}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-    };
-
-    html2pdf().set(opt).from(element).save();
-  };
-
-  function formatDateForFilename(ts: number) {
-    const d = new Date(ts);
-
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0"); // 01–12
-    const day = String(d.getDate()).padStart(2, "0");       // 01–31
-
-    return `${year}-${month}-${day}`;
-  }
-
-
+  const handleExportSession = (session: GroupSession) =>
+    exportSessionPdf({ session, familyNamesById: idToName });
   const handleDragEnd = (result: DropResult) => {
     const { source, destination } = result;
     if (!destination) return;
@@ -138,10 +98,6 @@ export function PairingView({
       return groups.filter(g => g.length > 0);
     });
   };
-
-  const idToName = useMemo(() => {
-    return Object.fromEntries(families.map((f) => [f.id, f.name]));
-  }, [families]);
 
   return (
     <div className="grid gap-6 md:grid-cols-[3fr,2fr] text-white">
@@ -299,7 +255,7 @@ export function PairingView({
                 <div className="flex items-center justify-between mb-1">
                   {/* NEW PDF EXPORT BUTTON */}
                   <button
-                    onClick={() => exportSessionPDF(s)}
+                    onClick={() => handleExportSession(s)}
                     className="px-2 py-1 text-[10px] bg-purple-600 text-white rounded hover:bg-purple-700 transition"
                   >
                     Export to PDF
