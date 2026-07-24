@@ -5,6 +5,7 @@ import { TabBar } from "../components/TabBar";
 import { FamilyManager } from "../components/FamilyManager";
 import { PairingView } from "../components/PairingView";
 import { AttendanceSelector } from "../components/AttendanceSelector";
+import { SessionHistory } from "../components/SessionHistory";
 import { createClient, type User } from "@supabase/supabase-js";
 import Image from "next/image";
 
@@ -26,7 +27,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type Tab = "families" | "attendance" | "pairing";
+type Tab = "session" | "families" | "history";
 type AuthStatus = "checking" | "signed_out" | "denied" | "allowed";
 
 const subscribeToHydration = () => () => {};
@@ -37,7 +38,10 @@ export default function HomePage() {
     () => true,
     () => false
   );
-  const [activeTab, setActiveTab] = useState<Tab>("families");
+  const [activeTab, setActiveTab] = useState<Tab>("session");
+  const [sessionStep, setSessionStep] = useState<"participants" | "groups">(
+    "participants"
+  );
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [userEmail, setUserEmail] = useState("");
   const [families, setFamilies] = useState<Family[]>([]);
@@ -146,20 +150,6 @@ export default function HomePage() {
     setAttendingIds([]);
   };
 
-  const loadFamilies = async () => {
-    const { data, error } = await supabase
-      .from("families")
-      .select("*")
-      .order("name");
-
-    if (!error && data) {
-      setFamilies(data);
-      setAttendingIds(
-        data.filter((family) => !family.archived).map((family) => family.id)
-      );
-    }
-  };
-
   // ---------------------------------------------------------
   // ADD A FAMILY (INSERT INTO SUPABASE)
   // ---------------------------------------------------------
@@ -172,7 +162,7 @@ export default function HomePage() {
       return;
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("families")
       .insert([{ id: crypto.randomUUID(), name: trimmed, archived: false }])
       .select()
@@ -183,9 +173,12 @@ export default function HomePage() {
       return;
     }
 
-    if (!error) {
-      await loadFamilies();
-    }
+    setFamilies((prev) =>
+      [...prev, data].sort((a, b) => a.name.localeCompare(b.name))
+    );
+    setAttendingIds((prev) =>
+      prev.includes(data.id) ? prev : [...prev, data.id]
+    );
   };
 
   // ---------------------------------------------------------
@@ -279,7 +272,7 @@ export default function HomePage() {
   // SAVE NEW SESSION INTO SUPABASE
   // ---------------------------------------------------------
   const saveCurrentGroupsAsSession = async (groups: string[][]) => {
-    if (!groups || groups.length === 0) return;
+    if (!groups || groups.length === 0) return false;
 
     const newSession: GroupSession = {
       id: crypto.randomUUID(),
@@ -295,18 +288,13 @@ export default function HomePage() {
 
     if (error) {
       console.error("Save session error:", error);
-      return;
+      return false;
     }
 
     // Prepend to list
     setSessions((prev) => [data, ...prev]);
+    return true;
   };
-
-  // Get most recent session
-  const mostRecentSession = useMemo(
-    () => (sessions.length > 0 ? sessions[0] : null),
-    [sessions]
-  );
 
   if (!isHydrated || authStatus === "checking" || (authStatus === "allowed" && loading)) {
     return (
@@ -467,29 +455,42 @@ export default function HomePage() {
             onAddFamily={handleAddFamily}
             onRemoveFamily={handleRemoveFamily}
             onRestoreFamily={handleRestoreFamily}
-            onGeneratePairs={() => setActiveTab("attendance")}
+            onGeneratePairs={() => {
+              setSessionStep("participants");
+              setActiveTab("session");
+            }}
             onEditFamily={handleEditFamily}
           />
         )}
 
-        {activeTab === "pairing" && (
+        {activeTab === "session" && sessionStep === "groups" && (
           <PairingView
             families={activeFamilies}
             historicalFamilies={families}
             attendingIds={attendingIds}
             sessions={sessions}
-            mostRecentSession={mostRecentSession}
             onSaveSession={saveCurrentGroupsAsSession}
+            onSessionSaved={() => {
+              setSessionStep("participants");
+              setActiveTab("history");
+            }}
+            onBack={() => setSessionStep("participants")}
           />
         )}
 
-        {activeTab === "attendance" && (
+        {activeTab === "session" && sessionStep === "participants" && (
           <AttendanceSelector
             families={activeFamilies}
             attendingIds={attendingIds}
             onToggle={toggleAttendance}
             onSetMany={setManyAttendance}
+            onAddFamily={handleAddFamily}
+            onContinue={() => setSessionStep("groups")}
           />
+        )}
+
+        {activeTab === "history" && (
+          <SessionHistory families={families} sessions={sessions} />
         )}
       </main>
     </div>

@@ -8,6 +8,8 @@ interface Props {
   attendingIds: string[];
   onToggle: (id: string) => void;
   onSetMany?: (ids: string[], checked: boolean) => void;
+  onAddFamily: (name: string) => Promise<void>;
+  onContinue: () => void;
 }
 
 export function AttendanceSelector({
@@ -15,8 +17,12 @@ export function AttendanceSelector({
   attendingIds,
   onToggle,
   onSetMany,
+  onAddFamily,
+  onContinue,
 }: Props) {
   const [search, setSearch] = useState("");
+  const [newFamilyName, setNewFamilyName] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
 
   // Filter families by search text
   const filteredFamilies = useMemo(() => {
@@ -42,12 +48,22 @@ export function AttendanceSelector({
     onSetMany(filteredFamilies.map(f => f.id), false);
   };
 
+  const handleAddFamily = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!newFamilyName.trim() || isAdding) return;
+
+    setIsAdding(true);
+    await onAddFamily(newFamilyName);
+    setNewFamilyName("");
+    setIsAdding(false);
+  };
+
   return (
     <section className="mx-auto max-w-4xl space-y-5 rounded-2xl border border-slate-200 bg-white p-5 text-slate-700 shadow-sm sm:p-7">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-            Step two
+            Step one of two
           </p>
           <h2 className="text-xl font-semibold tracking-tight text-[#242c48] sm:text-2xl">
           Who’s participating this Around The Table?
@@ -91,6 +107,31 @@ export function AttendanceSelector({
         </button>
       </div>
 
+      <details className="rounded-xl border border-slate-200 bg-slate-50">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-[#242c48]">
+          + Add a family who is not listed
+        </summary>
+        <form
+          onSubmit={handleAddFamily}
+          className="flex flex-col gap-2 border-t border-slate-200 p-4 sm:flex-row"
+        >
+          <input
+            type="text"
+            value={newFamilyName}
+            onChange={(event) => setNewFamilyName(event.target.value)}
+            placeholder="e.g. Perry Family"
+            className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none focus:border-[#242c48] focus:ring-4 focus:ring-[#242c48]/10"
+          />
+          <button
+            type="submit"
+            disabled={!newFamilyName.trim() || isAdding}
+            className="min-h-11 rounded-lg bg-[#242c48] px-5 text-sm font-semibold text-white transition hover:bg-[#192139] disabled:bg-slate-300"
+          >
+            {isAdding ? "Adding…" : "Add family"}
+          </button>
+        </form>
+      </details>
+
       {/* Family list */}
       <div className="grid max-h-[32rem] gap-2 overflow-auto pr-1 sm:grid-cols-2">
         {filteredFamilies.length === 0 ? (
@@ -115,6 +156,16 @@ export function AttendanceSelector({
             </label>
           ))
         )}
+      </div>
+      <div className="flex justify-end border-t border-slate-200 pt-5">
+        <button
+          type="button"
+          onClick={onContinue}
+          disabled={attendingIds.length < 2}
+          className="min-h-12 w-full rounded-xl bg-[#242c48] px-6 font-semibold text-white shadow-sm transition hover:bg-[#192139] disabled:bg-slate-300 sm:w-auto"
+        >
+          Continue with {attendingIds.length} participants →
+        </button>
       </div>
     </section>
   );

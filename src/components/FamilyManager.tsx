@@ -141,7 +141,7 @@ const confirmRemove = async () => {
             {families.map((f) => (
               <li
                 key={f.id}
-                className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition hover:border-slate-300 hover:bg-white"
+                className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors duration-150 hover:border-slate-300 hover:bg-slate-100"
               >
                 <span>{f.name}</span>
                 <div className="flex shrink-0 items-center gap-1">

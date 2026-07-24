@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import { buildPairFrequency, generateGroups } from "../../utils/groupings";
-import { exportSessionPdf } from "../../utils/exportSessionPdf";
 import { Family, GroupSession } from "../app/page";
 import {
   DragDropContext,
@@ -16,13 +15,9 @@ interface PairingViewProps {
   historicalFamilies: Family[];
   attendingIds: string[];
   sessions: GroupSession[];
-  mostRecentSession: GroupSession | null;
-  onSaveSession: (groups: string[][]) => void;
-}
-
-function formatDate(timestamp: number) {
-  const d = new Date(timestamp);
-  return d.toLocaleString();
+  onSaveSession: (groups: string[][]) => Promise<boolean>;
+  onSessionSaved: () => void;
+  onBack: () => void;
 }
 
 export function PairingView({
@@ -30,8 +25,9 @@ export function PairingView({
   historicalFamilies,
   attendingIds,
   sessions,
-  mostRecentSession,
   onSaveSession,
+  onSessionSaved,
+  onBack,
 }: PairingViewProps) {
   const [groupSize, setGroupSize] = useState(3);
   const [currentGroups, setCurrentGroups] = useState<string[][]>([]);
@@ -57,32 +53,29 @@ export function PairingView({
     setCurrentGroups(groups);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (currentGroups.length === 0 || saveDisabled) return;
 
-    // Remove empty groups
     const cleaned = currentGroups.filter(g => g.length > 0);
-
-    onSaveSession(cleaned);
-
-    // Clear groups after saving
-    setCurrentGroups([]);
-
-    // Disable save button
     setSaveDisabled(true);
 
-    // Show toast
+    const saved = await onSaveSession(cleaned);
+
+    if (!saved) {
+      setSaveDisabled(false);
+      return;
+    }
+
+    setCurrentGroups([]);
     setShowToast(true);
 
-    // Hide toast and re-enable button after 2 seconds
     setTimeout(() => {
       setShowToast(false);
       setSaveDisabled(false);
-    }, 2000);
+      onSessionSaved();
+    }, 800);
   };
 
-  const handleExportSession = (session: GroupSession) =>
-    exportSessionPdf({ session, familyNamesById: idToName });
   const handleDragEnd = (result: DropResult) => {
     const { source, destination } = result;
     if (!destination) return;
@@ -102,9 +95,21 @@ export function PairingView({
   };
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[3fr,2fr]">
+    <div>
       {/* LEFT: current groups + controls */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 text-slate-700 shadow-sm sm:p-6">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 text-slate-700 shadow-sm sm:p-7">
+        <div className="mb-5 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="min-h-9 rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+          >
+            ← Participants
+          </button>
+          <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+            Step two of two
+          </span>
+        </div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-semibold tracking-tight text-[#242c48]">
             Group Generator
@@ -240,61 +245,6 @@ export function PairingView({
         )}
       </section>
 
-      {/* RIGHT: history */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 text-slate-700 shadow-sm sm:p-6">
-        <h2 className="mb-4 text-xl font-semibold tracking-tight text-[#242c48]">
-          Around The Table History
-        </h2>
-
-        {sessions.length === 0 ? (
-          <p className="text-sm text-slate-400">
-            No saved groups yet.
-          </p>
-        ) : (
-          <div className="max-h-[38rem] space-y-3 overflow-auto pr-1">
-            {sessions.map((s) => (
-              <div
-                key={s.id}
-                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  {/* NEW PDF EXPORT BUTTON */}
-                  <button
-                    onClick={() => handleExportSession(s)}
-                    className="min-h-8 rounded-lg bg-[#242c48] px-3 text-[10px] font-semibold text-white transition hover:bg-[#192139]"
-                  >
-                    Export to PDF
-                  </button>
-                  <span className="font-medium">
-                  </span>
-                  <span className="text-slate-500">
-                    {formatDate(s.timestamp)}
-                  </span>
-                </div>
-
-                {s.groups.map((group, i) => (
-                  <div key={i} className="mb-2">
-                    <span className="font-semibold">Group {i + 1}:</span>
-                    <ul className="ml-3 text-[11px] space-y-1">
-                      {group.map((familyId) => (
-                        <li key={familyId}>
-                          {idToName[familyId] ?? <span className="text-slate-500">(Unknown family)</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {mostRecentSession && (
-          <p className="mt-3 text-[11px] text-slate-500">
-            Latest Around The Table: {formatDate(mostRecentSession.timestamp)}
-          </p>
-        )}
-      </section>
     </div>
   );
 }

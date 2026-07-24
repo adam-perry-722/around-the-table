@@ -1,6 +1,6 @@
 "use client";
 
-type Tab = "families" | "attendance" | "pairing";
+type Tab = "session" | "families" | "history";
 
 interface TabBarProps {
   activeTab: Tab;
@@ -9,9 +9,9 @@ interface TabBarProps {
 
 export function TabBar({ activeTab, onChange }: TabBarProps) {
   const tabs: { id: Tab; label: string; shortLabel: string }[] = [
-    { id: "families", label: "1. Families", shortLabel: "Families" },
-    { id: "attendance", label: "2. Participation", shortLabel: "Attend" },
-    { id: "pairing", label: "3. Groups & History", shortLabel: "Groups" },
+    { id: "session", label: "New Session", shortLabel: "New" },
+    { id: "families", label: "Families", shortLabel: "Families" },
+    { id: "history", label: "History", shortLabel: "History" },
   ];
 
   return (
