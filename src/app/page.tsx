@@ -11,6 +11,7 @@ import Image from "next/image";
 export type Family = {
   id: string;
   name: string;
+  archived: boolean;
 };
 
 export type GroupSession = {
@@ -40,6 +41,14 @@ export default function HomePage() {
   const [sessions, setSessions] = useState<GroupSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [attendingIds, setAttendingIds] = useState<string[]>([]);
+  const activeFamilies = useMemo(
+    () => families.filter((family) => !family.archived),
+    [families]
+  );
+  const archivedFamilies = useMemo(
+    () => families.filter((family) => family.archived),
+    [families]
+  );
 
 
   // ---------------------------------------------------------
@@ -58,7 +67,9 @@ export default function HomePage() {
       if (famError) console.error("Error loading families:", famError);
       else if (famData) {
         setFamilies(famData);
-        setAttendingIds(famData.map((family) => family.id));
+        setAttendingIds(
+          famData.filter((family) => !family.archived).map((family) => family.id)
+        );
       }
 
       // Load sessions
@@ -84,7 +95,9 @@ export default function HomePage() {
 
     if (!error && data) {
       setFamilies(data);
-      setAttendingIds(data.map((family) => family.id));
+      setAttendingIds(
+        data.filter((family) => !family.archived).map((family) => family.id)
+      );
     }
   };
 
@@ -102,7 +115,7 @@ export default function HomePage() {
 
     const { error } = await supabase
       .from("families")
-      .insert([{ id: crypto.randomUUID(), name: trimmed }])
+      .insert([{ id: crypto.randomUUID(), name: trimmed, archived: false }])
       .select()
       .single();
 
@@ -117,17 +130,40 @@ export default function HomePage() {
   };
 
   // ---------------------------------------------------------
-  // REMOVE A FAMILY
+  // ARCHIVE A FAMILY
   // ---------------------------------------------------------
   const handleRemoveFamily = async (id: string) => {
-    const { error } = await supabase.from("families").delete().eq("id", id);
+    const { data, error } = await supabase
+      .from("families")
+      .update({ archived: true })
+      .eq("id", id)
+      .select()
+      .single();
+
     if (error) {
-      console.error("Remove family error:", error);
+      console.error("Archive family error:", error);
       return;
     }
 
-    setFamilies((prev) => prev.filter((f) => f.id !== id));
+    setFamilies((prev) => prev.map((family) => (family.id === id ? data : family)));
     setAttendingIds((prev) => prev.filter((familyId) => familyId !== id));
+  };
+
+  const handleRestoreFamily = async (id: string) => {
+    const { data, error } = await supabase
+      .from("families")
+      .update({ archived: false })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Restore family error:", error);
+      return;
+    }
+
+    setFamilies((prev) => prev.map((family) => (family.id === id ? data : family)));
+    setAttendingIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
 
   const toggleAttendance = (id: string) => {
@@ -259,7 +295,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-3 text-xs text-white/65">
             <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">
-              {families.length} families
+              {activeFamilies.length} families
             </span>
             <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">
               {attendingIds.length} participating
@@ -275,9 +311,11 @@ export default function HomePage() {
 
         {activeTab === "families" && (
           <FamilyManager
-            families={families}
+            families={activeFamilies}
+            archivedFamilies={archivedFamilies}
             onAddFamily={handleAddFamily}
             onRemoveFamily={handleRemoveFamily}
+            onRestoreFamily={handleRestoreFamily}
             onGeneratePairs={() => setActiveTab("attendance")}
             onEditFamily={handleEditFamily}
           />
@@ -285,7 +323,8 @@ export default function HomePage() {
 
         {activeTab === "pairing" && (
           <PairingView
-            families={families}
+            families={activeFamilies}
+            historicalFamilies={families}
             attendingIds={attendingIds}
             sessions={sessions}
             mostRecentSession={mostRecentSession}
@@ -295,7 +334,7 @@ export default function HomePage() {
 
         {activeTab === "attendance" && (
           <AttendanceSelector
-            families={families}
+            families={activeFamilies}
             attendingIds={attendingIds}
             onToggle={toggleAttendance}
             onSetMany={setManyAttendance}

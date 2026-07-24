@@ -5,16 +5,20 @@ import { useState } from "react";
 
 interface FamilyManagerProps {
   families: Family[];
+  archivedFamilies: Family[];
   onAddFamily: (name: string) => void;
   onRemoveFamily: (id: string) => void;
+  onRestoreFamily: (id: string) => void;
   onGeneratePairs: () => void;
   onEditFamily: (id: string, newName: string) => void;
 }
 
 export function FamilyManager({
   families,
+  archivedFamilies,
   onAddFamily,
   onRemoveFamily,
+  onRestoreFamily,
   onGeneratePairs,
   onEditFamily,
 }: FamilyManagerProps) {
@@ -153,13 +157,51 @@ const confirmRemove = async () => {
                   onClick={() => openRemoveConfirm(f.id, f.name)}
                   className="min-h-9 rounded-lg px-2 text-xs font-semibold text-red-600 transition hover:bg-red-50"
                 >
-                  Remove
+                  Archive
                 </button>
                 </div>
               </li>
             ))}
           </ul>
         )}
+        <div className="mt-6 border-t border-slate-200 pt-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-[#242c48]">
+                Archived families
+              </h3>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Archived names remain visible in session history.
+              </p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-500">
+              {archivedFamilies.length}
+            </span>
+          </div>
+          {archivedFamilies.length === 0 ? (
+            <p className="rounded-lg bg-slate-50 px-3 py-3 text-xs text-slate-400">
+              No archived families.
+            </p>
+          ) : (
+            <ul className="max-h-48 space-y-2 overflow-auto pr-1">
+              {archivedFamilies.map((family) => (
+                <li
+                  key={family.id}
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 text-sm text-slate-500"
+                >
+                  <span>{family.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => onRestoreFamily(family.id)}
+                    className="min-h-8 rounded-lg px-3 text-xs font-semibold text-[#242c48] transition hover:bg-[#242c48]/10"
+                  >
+                    Restore
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         {isEditOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             {/* backdrop */}
@@ -220,15 +262,16 @@ const confirmRemove = async () => {
             {/* modal */}
             <div className="relative w-[92%] max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl">
               <h3 className="mb-2 text-lg font-semibold text-[#242c48]">
-                Remove family?
+                Archive family?
               </h3>
 
               <p className="mb-4 text-sm text-slate-500">
-                Are you sure you want to remove{" "}
+                Are you sure you want to archive{" "}
                 <span className="font-semibold text-slate-900">{removeName}</span>?
                 <br />
                 <span className="text-slate-500">
-                  This would also remove them from the history. You would want to do this if the family is no longer attending our congregation.
+                  They will no longer appear in active lists, but their name
+                  will remain in history and can be restored later.
                 </span>
               </p>
 
@@ -246,7 +289,7 @@ const confirmRemove = async () => {
                   onClick={confirmRemove}
                   className="min-h-10 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700"
                 >
-                  Yes, remove
+                  Archive family
                 </button>
               </div>
             </div>

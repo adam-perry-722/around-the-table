@@ -13,6 +13,7 @@ import {
 
 interface PairingViewProps {
   families: Family[];
+  historicalFamilies: Family[];
   attendingIds: string[];
   sessions: GroupSession[];
   mostRecentSession: GroupSession | null;
@@ -26,6 +27,7 @@ function formatDate(timestamp: number) {
 
 export function PairingView({
   families,
+  historicalFamilies,
   attendingIds,
   sessions,
   mostRecentSession,
@@ -37,8 +39,8 @@ export function PairingView({
   const [showToast, setShowToast] = useState(false);
 
   const idToName = useMemo(() => {
-    return Object.fromEntries(families.map((f) => [f.id, f.name]));
-  }, [families]);
+    return Object.fromEntries(historicalFamilies.map((f) => [f.id, f.name]));
+  }, [historicalFamilies]);
 
   const handleGenerateGroups = () => {
     if (families.length < 2) {
