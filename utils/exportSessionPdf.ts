@@ -33,7 +33,8 @@ function formatDateForFilename(timestamp: number) {
 
 function buildSessionPdfMarkup(
   session: ExportableSession,
-  familyNamesById: Record<string, string>
+  familyNamesById: Record<string, string>,
+  logoUrl: string
 ) {
   const sessionDate = new Date(session.timestamp).toLocaleDateString(
     undefined,
@@ -82,29 +83,39 @@ function buildSessionPdfMarkup(
       }
       .pdf-header {
         display: flex;
-        align-items: flex-end;
+        align-items: center;
         justify-content: space-between;
         gap: 24px;
-        margin-bottom: 18px;
-        padding: 6px 2px 14px;
-        border-bottom: 3px solid #2563eb;
+        margin-bottom: 16px;
+        padding: 13px 15px;
+        border-bottom: 4px solid #a7a6a8;
+        border-radius: 8px;
+        background: #242c48;
+      }
+      .brand-logo {
+        display: block;
+        width: 2.35in;
+        height: auto;
       }
       .pdf-header h1 {
         margin: 0 0 4px;
-        color: #172033;
-        font-size: 25px;
+        color: #ffffff;
+        font-size: 21px;
         line-height: 1;
         letter-spacing: -0.4px;
+        text-align: right;
       }
       .pdf-header p {
         margin: 0;
-        color: #64748b;
+        color: #d9dce5;
         font-size: 11px;
+        text-align: right;
       }
       .summary {
+        margin-top: 5px;
         flex: none;
-        color: #475569;
-        font-size: 10px;
+        color: #bfc4d1;
+        font-size: 9px;
         text-align: right;
         white-space: nowrap;
       }
@@ -116,9 +127,9 @@ function buildSessionPdfMarkup(
       }
       .group-card {
         overflow: hidden;
-        border: 1px solid #dbe3ee;
+        border: 1px solid #d4d6dc;
         border-radius: 7px;
-        background: #f8fafc;
+        background: #f5f5f6;
         break-inside: avoid;
         page-break-inside: avoid;
       }
@@ -129,7 +140,7 @@ function buildSessionPdfMarkup(
         gap: 8px;
         padding: 8px 10px;
         color: #ffffff;
-        background: #1e3a5f;
+        background: #242c48;
       }
       .group-heading h2 {
         margin: 0;
@@ -137,7 +148,7 @@ function buildSessionPdfMarkup(
         line-height: 1.2;
       }
       .group-heading span {
-        color: #dbeafe;
+        color: #d9dce5;
         font-size: 8px;
         white-space: nowrap;
       }
@@ -158,11 +169,18 @@ function buildSessionPdfMarkup(
     <main class="pdf-page">
       <header class="pdf-header">
         <div>
+          <img
+            class="brand-logo"
+            src="${escapeHtml(logoUrl)}"
+            alt="WindSong Church of Christ"
+          />
+        </div>
+        <div>
           <h1>Around The Table</h1>
           <p>${escapeHtml(sessionDate)}</p>
-        </div>
-        <div class="summary">
-          ${session.groups.length} groups&nbsp;&nbsp;&bull;&nbsp;&nbsp;${familyCount} families
+          <div class="summary">
+            ${session.groups.length} groups&nbsp;&nbsp;&bull;&nbsp;&nbsp;${familyCount} families
+          </div>
         </div>
       </header>
       <div class="groups-grid">${groupCards}</div>
@@ -178,7 +196,27 @@ export async function exportSessionPdf({
 
   const html2pdf = (await import("html2pdf.js")).default;
   const element = document.createElement("div");
-  element.innerHTML = buildSessionPdfMarkup(session, familyNamesById);
+  const logoUrl = new URL("/WS-full-logo-white.png", window.location.origin).href;
+  element.innerHTML = buildSessionPdfMarkup(
+    session,
+    familyNamesById,
+    logoUrl
+  );
+
+  await Promise.all(
+    Array.from(element.querySelectorAll("img")).map(
+      (image) =>
+        new Promise<void>((resolve) => {
+          if (image.complete) {
+            resolve();
+            return;
+          }
+
+          image.onload = () => resolve();
+          image.onerror = () => resolve();
+        })
+    )
+  );
 
   const options = {
     margin: 0.5,
