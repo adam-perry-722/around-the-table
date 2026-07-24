@@ -100,19 +100,19 @@ export function PairingView({
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-[3fr,2fr] text-white">
+    <div className="grid gap-5 xl:grid-cols-[3fr,2fr]">
       {/* LEFT: current groups + controls */}
-      <section className="rounded-xl border border-slate-800 bg-[#2A2A2A] p-4 md:p-5 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 text-slate-700 shadow-sm sm:p-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base md:text-lg font-semibold">
+          <h2 className="text-xl font-semibold tracking-tight text-[#242c48]">
             Group Generator
           </h2>
-          <span className="text-xs text-slate-400">
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
             {families.length} families loaded
           </span>
         </div>
 
-        <p className="text-xs md:text-sm text-slate-400 mb-4">
+        <p className="mb-5 max-w-3xl text-sm leading-6 text-slate-500">
           Choose a group size, then generate balanced groups using grouping
           history. Groups are built so people who have been together the least
           are grouped first. You can then drag names between groups to fine-tune
@@ -120,24 +120,25 @@ export function PairingView({
         </p>
 
         {/* Controls row */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="mb-6 flex flex-col gap-3 rounded-xl bg-slate-50 p-4 sm:flex-row sm:items-end">
           {/* GROUP SIZE INPUT */}
-          <label className="text-s text-slate-400 mb-1">Group Size</label>
-
-          <input
-            type="number"
-            min={2}
-            value={groupSize}
-            onChange={(e) => setGroupSize(Number(e.target.value))}
-            className="w-20 px-3 py-2 rounded-md bg-white text-black border border-slate-400 shadow-sm appearance-auto"
-          />
+          <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Group size
+            <input
+              type="number"
+              min={2}
+              value={groupSize}
+              onChange={(e) => setGroupSize(Number(e.target.value))}
+              className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-base font-normal text-slate-900 outline-none focus:border-[#242c48] focus:ring-4 focus:ring-[#242c48]/10 sm:w-24"
+            />
+          </label>
 
           {/* GENERATE BUTTON */}
           <button
             type="button"
             onClick={handleGenerateGroups}
             disabled={families.length < 2}
-            className="px-5 py-2 rounded-md font-medium shadow-sm bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition"
+            className="min-h-11 rounded-lg bg-[#242c48] px-5 font-semibold text-white shadow-sm transition hover:bg-[#192139] disabled:bg-slate-300"
           >
             Generate Groups
           </button>
@@ -147,7 +148,7 @@ export function PairingView({
             type="button"
             onClick={handleSave}
             disabled={currentGroups.length === 0 || saveDisabled}
-            className="px-5 py-2 rounded-md font-medium shadow-sm bg-green-600 text-white hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition"
+            className="min-h-11 rounded-lg border border-[#242c48] bg-white px-5 font-semibold text-[#242c48] transition hover:bg-[#242c48]/5 disabled:border-slate-200 disabled:text-slate-300"
           >
             Save Around The Table List
           </button>
@@ -155,12 +156,14 @@ export function PairingView({
 
         {/* GROUPS LIST WITH DRAG & DROP */}
         {currentGroups.length === 0 ? (
-          <p className="text-sm text-slate-400">
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
+          <p className="text-sm text-slate-500">
             No groups yet. Enter a size and generate groups.
           </p>
+          </div>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
               {currentGroups.map((group, groupIndex) => (
                 <Droppable
                   key={groupIndex}
@@ -170,11 +173,11 @@ export function PairingView({
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`rounded-lg border border-slate-800 bg-[#1E1E1E] p-3 transition ${
-                        snapshot.isDraggingOver ? "bg-slate-800/80" : ""
+                      className={`rounded-xl border border-slate-200 bg-slate-50 p-3 transition ${
+                        snapshot.isDraggingOver ? "border-[#242c48] bg-[#242c48]/5" : ""
                       }`}
                     >
-                      <h3 className="font-semibold text-sm mb-2">
+                      <h3 className="mb-2 text-sm font-semibold text-[#242c48]">
                         Group {groupIndex + 1}
                       </h3>
                       <ul className="text-xs space-y-1">
@@ -189,15 +192,15 @@ export function PairingView({
                                 ref={dragProvided.innerRef}
                                 {...dragProvided.draggableProps}
                                 {...dragProvided.dragHandleProps}
-                                className={`px-3 py-1.5 rounded-md bg-slate-900/80 border border-slate-700 flex items-center justify-between transition ${
+                                className={`flex min-h-10 items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition ${
                                   dragSnapshot.isDragging
-                                    ? "bg-blue-600/80 border-blue-300 shadow-lg"
+                                    ? "border-[#242c48] bg-white shadow-lg"
                                     : ""
                                 }`}
                               >
                                 <span>{idToName[member] ?? "(Unknown family)"}</span>
                                 <span className="text-[10px] text-slate-400">
-                                  drag to move
+                                  drag
                                 </span>
                               </li>
                             )}
@@ -218,7 +221,7 @@ export function PairingView({
             onClick={() =>
               setCurrentGroups((prev) => [...prev, []])
             }
-            className="mt-4 rounded-md bg-slate-700 hover:bg-slate-600 px-3 py-2 text-sm text-white shadow"
+            className="mt-4 min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
           >
             + Add New Group
           </button>
@@ -236,8 +239,8 @@ export function PairingView({
       </section>
 
       {/* RIGHT: history */}
-      <section className="rounded-xl border border-slate-800 bg-[#2A2A2A] p-4 md:p-5 shadow-sm">
-        <h2 className="text-base md:text-lg font-semibold mb-3">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 text-slate-700 shadow-sm sm:p-6">
+        <h2 className="mb-4 text-xl font-semibold tracking-tight text-[#242c48]">
           Around The Table History
         </h2>
 
@@ -246,17 +249,17 @@ export function PairingView({
             No saved groups yet.
           </p>
         ) : (
-          <div className="space-y-4 max-h-[26rem] overflow-auto pr-1">
+          <div className="max-h-[38rem] space-y-3 overflow-auto pr-1">
             {sessions.map((s) => (
               <div
                 key={s.id}
-                className="rounded-lg border border-slate-800 bg-[#1E1E1E] px-3 py-2 text-xs"
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs"
               >
                 <div className="flex items-center justify-between mb-1">
                   {/* NEW PDF EXPORT BUTTON */}
                   <button
                     onClick={() => handleExportSession(s)}
-                    className="px-2 py-1 text-[10px] bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+                    className="min-h-8 rounded-lg bg-[#242c48] px-3 text-[10px] font-semibold text-white transition hover:bg-[#192139]"
                   >
                     Export to PDF
                   </button>

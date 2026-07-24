@@ -8,38 +8,33 @@ interface TabBarProps {
 }
 
 export function TabBar({ activeTab, onChange }: TabBarProps) {
+  const tabs: { id: Tab; label: string; shortLabel: string }[] = [
+    { id: "families", label: "1. Families", shortLabel: "Families" },
+    { id: "attendance", label: "2. Participation", shortLabel: "Attend" },
+    { id: "pairing", label: "3. Groups & History", shortLabel: "Groups" },
+  ];
+
   return (
-    <div className="inline-flex rounded-full bg-[#2A2A2A] border border-slate-800 p-1 text-xs md:text-sm">
-      <button
-        onClick={() => onChange("families")}
-        className={`px-3 py-1.5 rounded-full transition ${
-          activeTab === "families"
-            ? "bg-primary text-white shadow-sm"
-            : "text-slate-400 hover:text-slate-100"
-        }`}
-      >
-        Families
-      </button>
-      <button
-        onClick={() => onChange("attendance")}
-        className={`px-3 py-1.5 rounded-full transition ${
-          activeTab === "attendance"
-            ? "bg-primary text-white shadow-sm"
-            : "text-slate-400 hover:text-slate-100"
-        }`}
-      >
-        Participation
-      </button>
-      <button
-        onClick={() => onChange("pairing")}
-        className={`px-3 py-1.5 rounded-full transition ${
-          activeTab === "pairing"
-            ? "bg-primary text-white shadow-sm"
-            : "text-slate-400 hover:text-slate-100"
-        }`}
-      >
-        Pairing & History
-      </button>
-    </div>
+    <nav
+      aria-label="Around The Table workflow"
+      className="grid w-full grid-cols-3 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm sm:inline-grid sm:w-auto"
+    >
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onChange(tab.id)}
+          aria-current={activeTab === tab.id ? "step" : undefined}
+          className={`min-h-11 rounded-lg px-2 text-xs font-semibold transition sm:px-5 sm:text-sm ${
+            activeTab === tab.id
+              ? "bg-[#242c48] text-white shadow-sm"
+              : "text-slate-500 hover:bg-slate-100 hover:text-[#242c48]"
+          }`}
+        >
+          <span className="sm:hidden">{tab.shortLabel}</span>
+          <span className="hidden sm:inline">{tab.label}</span>
+        </button>
+      ))}
+    </nav>
   );
 }

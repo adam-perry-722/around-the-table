@@ -43,14 +43,22 @@ export function AttendanceSelector({
   };
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-[#2A2A2A] p-5 space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">
+    <section className="mx-auto max-w-4xl space-y-5 rounded-2xl border border-slate-200 bg-white p-5 text-slate-700 shadow-sm sm:p-7">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+            Step two
+          </p>
+          <h2 className="text-xl font-semibold tracking-tight text-[#242c48] sm:text-2xl">
           Who’s participating this Around The Table?
         </h2>
-        <p className="text-sm text-slate-400">
+        <p className="mt-1 text-sm text-slate-500">
           Select the families that are participating.
         </p>
+        </div>
+        <span className="w-fit rounded-full bg-[#242c48]/8 px-3 py-1.5 text-xs font-semibold text-[#242c48]">
+          {attendingIds.length} of {families.length} selected
+        </span>
       </div>
 
       {/* Search */}
@@ -59,20 +67,16 @@ export function AttendanceSelector({
         placeholder="Search families…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="
-          w-full px-3 py-2 rounded-md
-          bg-white text-black
-          border border-slate-400
-        "
+        className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#242c48] focus:ring-4 focus:ring-[#242c48]/10"
       />
 
       {/* Bulk actions */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={handleSelectAll}
           disabled={filteredFamilies.length === 0 || allFilteredSelected}
-          className="px-3 py-1.5 rounded-md text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40"
+          className="min-h-10 rounded-lg bg-[#242c48] px-4 text-sm font-semibold text-white hover:bg-[#192139] disabled:opacity-40"
         >
           Select all
         </button>
@@ -81,33 +85,37 @@ export function AttendanceSelector({
           type="button"
           onClick={handleClearAll}
           disabled={filteredFamilies.length === 0}
-          className="px-3 py-1.5 rounded-md text-sm bg-slate-600 text-white hover:bg-slate-700 disabled:opacity-40"
+          className="min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40"
         >
           Clear
         </button>
       </div>
 
       {/* Family list */}
-      <div className="space-y-2 max-h-72 overflow-auto pr-1">
+      <div className="grid max-h-[32rem] gap-2 overflow-auto pr-1 sm:grid-cols-2">
         {filteredFamilies.length === 0 ? (
           <p className="text-sm text-slate-400">No families found.</p>
         ) : (
           filteredFamilies.map((family) => (
             <label
               key={family.id}
-              className="flex items-center gap-3 cursor-pointer"
+              className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                attendingIds.includes(family.id)
+                  ? "border-[#242c48]/30 bg-[#242c48]/5 text-[#242c48]"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
+              }`}
             >
               <input
                 type="checkbox"
                 checked={attendingIds.includes(family.id)}
                 onChange={() => onToggle(family.id)}
-                className="h-4 w-4 accent-blue-500"
+                className="h-5 w-5 shrink-0 accent-[#242c48]"
               />
-              <span className="text-white">{family.name}</span>
+              <span className="text-sm font-medium">{family.name}</span>
             </label>
           ))
         )}
       </div>
-    </div>
+    </section>
   );
 }

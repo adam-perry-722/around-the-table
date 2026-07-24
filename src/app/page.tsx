@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { TabBar } from "../components/TabBar";
 import { FamilyManager } from "../components/FamilyManager";
 import { PairingView } from "../components/PairingView";
 import { AttendanceSelector } from "../components/AttendanceSelector";
 import { createClient } from "@supabase/supabase-js";
+import Image from "next/image";
 
 export type Family = {
   id: string;
@@ -26,7 +27,14 @@ const supabase = createClient(
 
 type Tab = "families" | "attendance" | "pairing";
 
+const subscribeToHydration = () => () => {};
+
 export default function HomePage() {
+  const isHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false
+  );
   const [activeTab, setActiveTab] = useState<Tab>("families");
   const [families, setFamilies] = useState<Family[]>([]);
   const [sessions, setSessions] = useState<GroupSession[]>([]);
@@ -48,7 +56,10 @@ export default function HomePage() {
         .order("name", { ascending: true });
 
       if (famError) console.error("Error loading families:", famError);
-      else if (famData) setFamilies(famData);
+      else if (famData) {
+        setFamilies(famData);
+        setAttendingIds(famData.map((family) => family.id));
+      }
 
       // Load sessions
       const { data: sesData, error: sesError } = await supabase
@@ -65,10 +76,6 @@ export default function HomePage() {
     loadData();
   }, []);
 
-  useEffect(() => {
-    setAttendingIds(families.map(f => f.id));
-  }, [families]);
-
   const loadFamilies = async () => {
     const { data, error } = await supabase
       .from("families")
@@ -77,6 +84,7 @@ export default function HomePage() {
 
     if (!error && data) {
       setFamilies(data);
+      setAttendingIds(data.map((family) => family.id));
     }
   };
 
@@ -92,7 +100,7 @@ export default function HomePage() {
       return;
     }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("families")
       .insert([{ id: crypto.randomUUID(), name: trimmed }])
       .select()
@@ -119,6 +127,7 @@ export default function HomePage() {
     }
 
     setFamilies((prev) => prev.filter((f) => f.id !== id));
+    setAttendingIds((prev) => prev.filter((familyId) => familyId !== id));
   };
 
   const toggleAttendance = (id: string) => {
@@ -204,48 +213,95 @@ export default function HomePage() {
     [sessions]
   );
 
-  // Optional "loading" placeholder
-  if (loading) {
+  if (!isHydrated || loading) {
     return (
-      <div className="text-center text-slate-300 mt-20 text-lg">
-        Loading data…
+      <div className="flex min-h-screen items-center justify-center bg-[#242c48]">
+        <div className="flex flex-col items-center gap-5 text-white">
+          <Image
+            src="/WS-full-logo-white.png"
+            alt="WindSong Church of Christ"
+            width={300}
+            height={76}
+            priority
+            className="h-auto w-56 sm:w-72"
+          />
+          <div className="h-1 w-24 overflow-hidden rounded-full bg-white/20">
+            <div className="h-full w-1/2 animate-pulse rounded-full bg-white" />
+          </div>
+          <p className="text-sm text-white/70">Loading Around The Table…</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <TabBar activeTab={activeTab} onChange={setActiveTab} />
+    <div className="min-h-screen">
+      <header className="border-b border-white/10 bg-[#242c48] text-white shadow-lg shadow-slate-900/10">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          <div className="flex items-center gap-5">
+            <Image
+              src="/WS-full-logo-white.png"
+              alt="WindSong Church of Christ"
+              width={600}
+              height={153}
+              priority
+              className="h-auto w-48 sm:w-64"
+            />
+            <div className="hidden h-10 w-px bg-white/20 sm:block" />
+            <div className="hidden sm:block">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/55">
+                Community Ministry
+              </p>
+              <h1 className="mt-1 text-lg font-semibold tracking-tight">
+                Around The Table
+              </h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-white/65">
+            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">
+              {families.length} families
+            </span>
+            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">
+              {attendingIds.length} participating
+            </span>
+          </div>
+        </div>
+      </header>
 
-      {activeTab === "families" && (
-        <FamilyManager
-          families={families}
-          onAddFamily={handleAddFamily}
-          onRemoveFamily={handleRemoveFamily}
-          onGeneratePairs={() => setActiveTab("attendance")}
-          onEditFamily={handleEditFamily}
-        />
-      )}
+      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+        <div className="mb-6">
+          <TabBar activeTab={activeTab} onChange={setActiveTab} />
+        </div>
 
-      {activeTab === "pairing" && (
-        <PairingView
-          families={families}
-          attendingIds={attendingIds}
-          sessions={sessions}
-          mostRecentSession={mostRecentSession}
-          onSaveSession={saveCurrentGroupsAsSession}
-        />
-      )}
+        {activeTab === "families" && (
+          <FamilyManager
+            families={families}
+            onAddFamily={handleAddFamily}
+            onRemoveFamily={handleRemoveFamily}
+            onGeneratePairs={() => setActiveTab("attendance")}
+            onEditFamily={handleEditFamily}
+          />
+        )}
 
-      {activeTab === "attendance" && (
-        <AttendanceSelector
-          families={families}
-          attendingIds={attendingIds}
-          onToggle={toggleAttendance}
-          onSetMany={setManyAttendance}
-        />
-      )}
+        {activeTab === "pairing" && (
+          <PairingView
+            families={families}
+            attendingIds={attendingIds}
+            sessions={sessions}
+            mostRecentSession={mostRecentSession}
+            onSaveSession={saveCurrentGroupsAsSession}
+          />
+        )}
 
+        {activeTab === "attendance" && (
+          <AttendanceSelector
+            families={families}
+            attendingIds={attendingIds}
+            onToggle={toggleAttendance}
+            onSetMany={setManyAttendance}
+          />
+        )}
+      </main>
     </div>
   );
 }
