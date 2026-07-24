@@ -180,7 +180,7 @@ export function PairingView({
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`rounded-xl border border-slate-200 bg-slate-50 p-3 transition ${
+                      className={`rounded-xl border border-slate-200 bg-slate-50 p-3 transition-colors duration-150 hover:border-slate-300 hover:bg-slate-100 ${
                         snapshot.isDraggingOver ? "border-[#242c48] bg-[#242c48]/5" : ""
                       }`}
                     >
